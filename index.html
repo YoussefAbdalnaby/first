@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.io Chat</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f0f0f0; 
+        }
+        #messages { 
+            list-style-type: none; 
+            margin: 0; 
+            padding: 0; 
+            background: white; 
+            border: 1px solid #ddd; 
+            height: 400px; 
+            overflow-y: scroll; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+        #messages li { 
+            padding: 8px; 
+            border-bottom: 1px solid #eee; 
+        }
+        #messages li:nth-child(odd) { 
+            background: #f9f9f9; 
+        }
+        #messageForm { 
+            display: flex; 
+            gap: 10px; 
+        }
+        #messageInput { 
+            flex: 1; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { 
+            background: #0056b3; 
+        }
+        #typing { 
+            font-style: italic; 
+            color: #666; 
+            margin: 10px 0; 
+        }
+        .system-message {
+            color: #28a745;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Socket.io Chat Application</h1>
+    
+    <ul id="messages"></ul>
+    <div id="typing"></div>
+    
+    <form id="messageForm">
+        <input id="messageInput" placeholder="Type your message..." autocomplete="off" />
+        <button type="submit">Send</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messages = document.getElementById('messages');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const typingDiv = document.getElementById('typing');
+
+        // Add message to chat
+        function addMessage(content, className = '') {
+            const li = document.createElement('li');
+            li.innerHTML = content;
+            if (className) li.className = className;
+            messages.appendChild(li);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Send message
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.emit('chat message', { message });
+                messageInput.value = '';
+            }
+        });
+
+        // Typing indicator
+        let typingTimer;
+        messageInput.addEventListener('input', () => {
+            socket.emit('typing', { isTyping: true });
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                socket.emit('typing', { isTyping: false });
+            }, 1000);
+        });
+
+      
+
+        // Socket event listeners
+        socket.on('chat message', (data) => {
+            const isOwnMessage = data.id === socket.id;
+            const messageClass = isOwnMessage ? 'own-message' : '';
+            addMessage(`
+                <strong>${isOwnMessage ? 'You' : 'User'}:</strong> 
+                ${data.message} 
+                <small>(${data.timestamp})</small>
+            `, messageClass);
+        });
+
+        socket.on('user joined', (data) => {
+            addMessage(data.message, 'system-message');
+        });
+
+        socket.on('user left', (data) => {
+            addMessage(data.message, 'system-message');
+        });
+
+        socket.on('typing', (data) => {
+            if (data.isTyping) {
+                typingDiv.textContent = 'Someone is typing...';
+            } else {
+                typingDiv.textContent = '';
+            }
+        });
+
+     
+
+        socket.on('connect', () => {
+            addMessage('Connected to server!', 'system-message');
+        });
+
+        socket.on('disconnect', () => {
+            addMessage('Disconnected from server!', 'system-message');
+        });
+    </script>
+</body>
+</html>

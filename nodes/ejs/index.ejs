@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple EJS</title>
+</head>
+<body>
+    <h1>People List</h1>
+    <ul>
+        <% people.forEach(function(person) { %>
+            <li><%= person %></li>
+        <% }); %>
+    </ul>
+</body>
+</html>
